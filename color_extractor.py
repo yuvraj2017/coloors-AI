@@ -10,15 +10,9 @@ import colorsys
 import json
 import re
 from io import BytesIO
-from sklearn.metrics.pairwise import euclidean_distance
+from sklearn.metrics.pairwise import euclidean_distances
 from transformers import pipeline
 from functools import lru_cache
-
-
-
-def euclidean_distance(a, b):
-    return np.linalg.norm(a - b)
-
 
 # ============================================================
 # PAGE CONFIG
@@ -145,7 +139,7 @@ def compute_similar_colors(target_hex, all_hexes, top_n=3):
     target_rgb = hex_to_rgb(target_hex).reshape(1, -1)
     palette_rgb = np.array([hex_to_rgb(h) for h in all_hexes])
 
-    distances = euclidean_distance(target_rgb, palette_rgb)[0]
+    distances = euclidean_distances(target_rgb, palette_rgb)[0]
     sorted_idx = np.argsort(distances)
 
     similar = []
@@ -290,4 +284,3 @@ if uploaded_file:
     )
 
     st.caption("Color Intelligence Platform • Enterprise Demo • v1.0")
-
