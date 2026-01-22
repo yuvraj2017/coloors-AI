@@ -10,9 +10,11 @@ import colorsys
 import json
 import re
 from io import BytesIO
-from sklearn.metrics.pairwise import euclidean_distances
 from transformers import pipeline
 from functools import lru_cache
+
+
+
 
 # ============================================================
 # PAGE CONFIG
@@ -22,6 +24,75 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+
+
+
+st.markdown(
+    """
+    <style>
+    /* App background */
+    .stApp {
+        background-color: #F6F1EB;
+        color: #2B2B2B;
+    }
+
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: #EFE6DA;
+        border-right: 1px solid #D6C8BA;
+    }
+
+    /* Titles */
+    h1, h2, h3 {
+        color: #8B2E3C;
+        font-weight: 700;
+    }
+
+    /* Captions & muted text */
+    .stCaption, p {
+        color: #6B5E55;
+    }
+
+    /* Buttons */
+    button[kind="primary"] {
+        background-color: #8B2E3C;
+        color: #FFFFFF;
+        border-radius: 8px;
+        border: none;
+    }
+
+    button[kind="primary"]:hover {
+        background-color: #732431;
+    }
+
+    /* Cards */
+    .rustic-card {
+        background-color: #FFFFFF;
+        border: 1px solid #D6C8BA;
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    /* Code blocks */
+    pre {
+        background-color: #F0E8DE !important;
+        border-radius: 8px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+
+def euclidean_distance(a, b):
+    return np.linalg.norm(a - b)
+
+
 
 st.title("🎨 Color Intelligence Platform")
 st.caption("Enterprise AI for Color Psychology, Branding & Accessibility")
@@ -135,18 +206,19 @@ def accessibility_analysis(features):
 # ============================================================
 # SIMILAR COLOR ENGINE (DETERMINISTIC)
 # ============================================================
-def compute_similar_colors(target_hex, all_hexes, top_n=3):
-    target_rgb = hex_to_rgb(target_hex).reshape(1, -1)
-    palette_rgb = np.array([hex_to_rgb(h) for h in all_hexes])
+def compute_similar_colors(target_hex, all_hexes, top_n=5):
+    target_rgb = hex_to_rgb(target_hex)
 
-    distances = euclidean_distances(target_rgb, palette_rgb)[0]
-    sorted_idx = np.argsort(distances)
+    distances = []
+    for h in all_hexes:
+        rgb = hex_to_rgb(h)
+        dist = euclidean_distance(target_rgb, rgb)
+        distances.append((h, dist))
 
-    similar = []
-    for idx in sorted_idx[1:top_n + 1]:
-        similar.append(all_hexes[idx])
+    distances.sort(key=lambda x: x[1])
 
-    return similar
+    return [h for h, _ in distances[1:top_n + 1]]
+
 
 # ============================================================
 # LLM GENERATION (CACHED)
@@ -180,10 +252,12 @@ def to_downloadable_file(content, filename, mime):
 # ============================================================
 # SIDEBAR
 # ============================================================
-st.sidebar.header("Configuration")
-st.sidebar.markdown("**LLM:** FLAN-T5 Large (Free, Local)")
-st.sidebar.markdown("**Mode:** Enterprise Demo")
-st.sidebar.markdown("**Output:** Markdown + JSON")
+st.sidebar.header("Platform Settings")
+st.sidebar.markdown("**Model:** FLAN-T5 (Local)")
+st.sidebar.markdown("**Theme:** Rustic Editorial")
+st.sidebar.markdown("**Output:** Markdown • JSON")
+st.sidebar.markdown("---")
+st.sidebar.caption("Color Intelligence Platform")
 
 # ============================================================
 # CSV UPLOAD
@@ -239,23 +313,58 @@ if uploaded_file:
         with c1:
             st.markdown(
                 f"""
-                <div style="height:160px;
-                background:{hex_color};
-                border-radius:12px;
-                border:1px solid #ddd;"></div>
+                <div style="
+                    height:160px;
+                    background:{hex_color};
+                    border-radius:14px;
+                    border:2px solid #C9A66B;
+                    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+                ">
+                </div>
                 """,
                 unsafe_allow_html=True
             )
             st.code(hex_color)
             st.json(features)
 
+
         with c2:
-            st.markdown(f"## {name or hex_color}")
-            st.markdown(ai_output)
+            st.markdown(
+                f"""
+                <div class="rustic-card">
+                    <h3>{name or hex_color}</h3>
+                    {ai_output}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
 
     # ========================================================
     # EXPORT SECTION
     # ========================================================
+    
+    SAMPLE_CSV = """hex,name
+    AB274F,Cherry Rose
+    8B2E3C,Rust Wine
+    C9A66B,Antique Gold
+    5E3A2E,Chestnut Bark
+    2F3E46,Deep Slate
+    A67C52,Old Leather
+    """
+
+    st.markdown("### 📄 Sample CSV")
+    st.caption("Use this template to explore the platform")
+
+    st.download_button(
+        label="Download Sample CSV",
+        data=SAMPLE_CSV,
+        file_name="sample_colors.csv",
+        mime="text/csv"
+    )
+
+    
+    
     st.markdown("---")
     st.header("📥 Download Generated Files")
 
